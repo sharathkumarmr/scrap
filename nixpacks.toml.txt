@@ -1,5 +1,5 @@
 [phases.setup]
-nixPkgs = ["...", "nodejs", "chromium"]
+nixPkgs = ["nodejs", "google-chrome", "cacert"]
 
 [phases.build]
 cmds = ["npm install"]
