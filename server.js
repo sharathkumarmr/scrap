@@ -6,8 +6,7 @@ const chalk = require("chalk");
 const path = require("path");
 
 const PORT = process.env.PORT || 3000;
-// Increased to 5s to prevent Railway "Out of Memory" crashes
-const REFRESH_MS = 5000; 
+const REFRESH_MS = 5000; // 5 seconds is safer for Railway's CPU
 
 let prices = {
     "XAG/USD": 0,
@@ -26,7 +25,6 @@ app.get("/", (req, res) => {
 
 async function fetchPrice(page, symbol) {
     try {
-        // Selector for Investing.com's live price
         const priceText = await page.evaluate(() => {
             const el = document.querySelector('[data-test="instrument-price-last"]');
             return el ? el.innerText : null;
@@ -44,14 +42,15 @@ async function fetchPrice(page, symbol) {
 }
 
 async function initPuppeteer() {
-    console.log(chalk.yellow("Launching Browser..."));
+    console.log(chalk.yellow("🚀 Launching Chromium..."));
     
     const browser = await puppeteer.launch({
         headless: "new",
+        executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null,
         args: [
             "--no-sandbox",
             "--disable-setuid-sandbox",
-            "--disable-dev-shm-usage", // Critical for Railway/Docker
+            "--disable-dev-shm-usage",
             "--single-process",
             "--no-zygote"
         ]
@@ -60,29 +59,27 @@ async function initPuppeteer() {
     const xagusdPage = await browser.newPage();
     const xauusdPage = await browser.newPage();
 
-    // Set User-Agent to avoid being blocked as a bot
     const ua = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36";
     await xagusdPage.setUserAgent(ua);
     await xauusdPage.setUserAgent(ua);
 
-    console.log(chalk.yellow("Navigating to pages..."));
+    console.log(chalk.yellow("📡 Connecting to Investing.com..."));
     await Promise.all([
         xagusdPage.goto("https://www.investing.com/currencies/xag-usd", { waitUntil: "domcontentloaded" }),
         xauusdPage.goto("https://www.investing.com/currencies/xau-usd", { waitUntil: "domcontentloaded" })
     ]);
 
-    // Start Loops
     setInterval(() => fetchPrice(xagusdPage, "XAG/USD"), REFRESH_MS);
     setInterval(() => fetchPrice(xauusdPage, "XAU/USD"), REFRESH_MS);
 }
 
 io.on("connection", (socket) => {
-    console.log("Client connected");
     socket.emit("pricePoint", { symbol: "XAG/USD", price: prices["XAG/USD"], timestamp: Date.now() });
     socket.emit("pricePoint", { symbol: "XAU/USD", price: prices["XAU/USD"], timestamp: Date.now() });
 });
 
-server.listen(PORT, () => {
-    console.log(chalk.cyan(`Server running on port ${PORT}`));
-    initPuppeteer().catch(err => console.error("Puppeteer Init Failed:", err));
+// Use '0.0.0.0' so Railway can expose the port to the internet
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(chalk.cyan(`✅ Server online at http://0.0.0.0:${PORT}`));
+    initPuppeteer().catch(err => console.error("❌ Puppeteer Init Failed:", err));
 });
