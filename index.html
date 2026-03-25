@@ -1,89 +1,33 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Metal Price Tracker</title>
+    <title>Live Metal Tracker</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        body {
-            background-color: #0e1117;
-            color: #ffffff;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            margin: 0;
-        }
-        .container {
-            display: flex;
-            gap: 20px;
-        }
-        .card {
-            background: #161b22;
-            border: 1px solid #30363d;
-            border-radius: 12px;
-            padding: 24px;
-            width: 250px;
-            text-align: center;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-        }
-        .symbol {
-            font-size: 1.2rem;
-            color: #8b949e;
-            margin-bottom: 8px;
-        }
-        .price {
-            font-size: 2.5rem;
-            font-weight: bold;
-            margin: 10px 0;
-            transition: color 0.3s ease;
-        }
-        .up { color: #3fb950; }
-        .down { color: #f85149; }
-        .timestamp {
-            font-size: 0.8rem;
-            color: #484f58;
-        }
+        body { background: #0b0e14; color: white; font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: #1a1f29; padding: 30px; border-radius: 15px; text-align: center; min-width: 200px; margin: 10px; border: 1px solid #2d333b; }
+        .price { font-size: 3rem; font-weight: bold; margin: 10px 0; transition: 0.3s; }
+        .up { color: #2ecc71; } .down { color: #e74c3c; }
+        .label { color: #848d97; font-size: 1.2rem; }
     </style>
 </head>
 <body>
-
-    <div class="container">
-        <div class="card" id="gold-card">
-            <div class="symbol">XAU / USD</div>
-            <div class="price" id="xau-price">0.00</div>
-            <div class="timestamp" id="xau-time">Waiting...</div>
-        </div>
-
-        <div class="card" id="silver-card">
-            <div class="symbol">XAG / USD</div>
-            <div class="price" id="xag-price">0.00</div>
-            <div class="timestamp" id="xag-time">Waiting...</div>
-        </div>
+    <div class="card">
+        <div class="label">GOLD (XAU/USD)</div>
+        <div id="xau-price" class="price">0.00</div>
     </div>
-
+    <div class="card">
+        <div class="label">SILVER (XAG/USD)</div>
+        <div id="xag-price" class="price">0.00</div>
+    </div>
     <script>
         const socket = io();
-        const lastPrices = { "XAU/USD": 0, "XAG/USD": 0 };
-
+        let old = { "XAU/USD": 0, "XAG/USD": 0 };
         socket.on("pricePoint", (data) => {
-            const elementId = data.symbol === "XAU/USD" ? "xau-price" : "xag-price";
-            const timeId = data.symbol === "XAU/USD" ? "xau-time" : "xag-time";
-            const priceEl = document.getElementById(elementId);
-            
-            // Visual feedback: Green for up, Red for down
-            if (data.price > lastPrices[data.symbol]) {
-                priceEl.className = "price up";
-            } else if (data.price < lastPrices[data.symbol]) {
-                priceEl.className = "price down";
-            }
-
-            priceEl.innerText = data.price.toLocaleString(undefined, { minimumFractionDigits: 2 });
-            document.getElementById(timeId).innerText = new Date(data.timestamp).toLocaleTimeString();
-            
-            lastPrices[data.symbol] = data.price;
+            const el = document.getElementById(data.symbol === "XAU/USD" ? "xau-price" : "xag-price");
+            el.className = data.price > old[data.symbol] ? "price up" : "price down";
+            el.innerText = data.price.toFixed(2);
+            old[data.symbol] = data.price;
         });
     </script>
 </body>
